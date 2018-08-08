@@ -71,6 +71,18 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+# class TemplatesSerializer(serializers.ModelSerializer):
+#     name = serializers.SerializerMethodField()
+#
+#     def get_name(self, obj):
+#
+#         return obj.name
+
+    class Meta:
+        model = models.Templates
+        fields = ("name",)
+
+
 
 
 class HostEnvironmentRelationSerializer(serializers.ModelSerializer):
@@ -84,13 +96,17 @@ class HostEnvironmentRelationSerializer(serializers.ModelSerializer):
     tomcat = TomcatSerializer(many=False)
     hosts = HostSerializer(many=True)
     group_type = serializers.SerializerMethodField()
-    # project = ProjectSerializer(many=False)
+    templates = serializers.SerializerMethodField()
     app_variables = AppVariablesSerializer(many=True)
     db_variables = DbVariablesSerializer(many=True)
 
     def get_group_type(self, obj):
 
         return obj.get_group_type_display()
+
+    def get_templates(self,obj):
+        templates = obj.templates.all()
+        return [x.name  for x in templates]
 
     class Meta:
         model = models.HostEnvironmentRelation

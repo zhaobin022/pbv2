@@ -188,8 +188,7 @@ class Utils(object):
         else:
             cmd = "rsync -a %s %s" % (src,dest)
         x.add_row( [cmd])
-        # return_code = subprocess.call(cmd, shell=True)
-        return_code = 0
+        return_code = subprocess.call(cmd, shell=True)
         if return_code != 0:
             print(x)
             sys.exit("rsync %s to %s failed !!!" % (src,dest))
@@ -206,8 +205,7 @@ class Utils(object):
         else:
             cmd = """rsync -a --exclude ".svn" %s %s""" % (src,dest)
         x.add_row( [cmd])
-        # return_code = subprocess.call(cmd, shell=True)
-        return_code = 0
+        return_code = subprocess.call(cmd, shell=True)
         if return_code != 0:
             print(x)
             sys.exit("rsync %s to %s failed !!!" % (src,dest))
@@ -2061,6 +2059,7 @@ class DeployHandler(object):
 
             server = self.get_jenkins_server()
             build_info_dict = server.get_build_info(self.job_name,self.build_number)
+            print(build_info_dict)
             svn_url_list = build_info_dict['changeSet']['revisions']
 
             if len(svn_url_list) == 1:
@@ -3169,7 +3168,7 @@ if __name__ == '__main__':
     #
     #
     # args = parser.parse_args()
-    d = {'job_type': 'build', 'envid': '119', 'depapps': 'fcs', 'mailtype': None, 'package_file': None,
+    d = {'job_type': 'all', 'envid': '119', 'depapps': 'fcs4exchange', 'mailtype': None, 'package_file': None,
      'build_number': 8, 'debug': False, 'production': False, 'mavenbase': False, 'ant': False, 'command_args': None, 'src_job_dir': None, 'is_jar': False}
     deploy_handler = DeployHandler(**d)
 

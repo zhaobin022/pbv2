@@ -38,13 +38,63 @@ class JenkinsApi(object):
         self.server.delete_job(job_name)
     def rename_job(self,old_name,new_name):
         self.server.rename_job(old_name,new_name)
-# if __name__ == '__main__':
+if __name__ == '__main__':
     # jenkins_handler = JenkinsApi("http://10.12.208.89:8080", "admin", "e0f51bfdafb9bcccec1ab1e59aac0e41","a")
     # jenkins_handler.build_job({})
 
     # server = jenkins.Jenkins("http://10.12.208.89:8080", username="admin", password="6879e44b3dce17ae2df63d898a6ec318")
     # try:
-    #     # server = jenkins.Jenkins("http://10.12.12.157:8080", username="admin", password="fe8640ce0a98f56b75fb3e68ba08f536")
+    server = jenkins.Jenkins("http://10.12.12.157:8080", username="admin", password="fe8640ce0a98f56b75fb3e68ba08f536")
+    # ret = server.get_job_config('job22')
+    # with open('ret1.xml','w') as f:
+    #     f.write(ret)
+    svn_xml = '''
+<scm class="hudson.scm.SubversionSCM" plugin="subversion@2.11.1">
+<locations>
+  <hudson.scm.SubversionSCM_-ModuleLocation>
+    <remote>http://abc.com</remote>
+    <credentialsId></credentialsId>
+    <local>.</local>
+    <depthOption>infinity</depthOption>
+    <ignoreExternalsOption>true</ignoreExternalsOption>
+    <cancelProcessOnExternalsFail>true</cancelProcessOnExternalsFail>
+  </hudson.scm.SubversionSCM_-ModuleLocation>
+</locations>
+<excludedRegions></excludedRegions>
+<includedRegions></includedRegions>
+<excludedUsers></excludedUsers>
+<excludedRevprop></excludedRevprop>
+<excludedCommitMessages></excludedCommitMessages>
+<workspaceUpdater class="hudson.scm.subversion.UpdateWithCleanUpdater"/>
+<ignoreDirPropChanges>false</ignoreDirPropChanges>
+<filterChangelog>false</filterChangelog>
+<quietOperation>true</quietOperation>
+</scm>
+'''
+    job1_config_xml = server.get_job_config('job1')
+
+    import xml.etree.ElementTree as ET
+
+    svn_root = ET.fromstring(svn_xml)
+
+    job_root = ET.fromstring(job1_config_xml)
+    for scm in job_root.iter("scm"):
+        job_root.remove(scm)
+        break
+
+
+
+    for project in job_root.iter('project'):
+        project.append(svn_root)
+        break
+
+    msg = ET.tostring(job_root,encoding='utf8')
+    print(type(msg))
+    server.reconfig_job('job1',msg.decode('utf-8'))
+    pass
+
+    # server.reconfig_job('job1',create_job_xml)
+    # pass
     #     # msg = server.build_job(name='job1')
     #     # server.copy_job('job1','job1_copy')
     #     # pass

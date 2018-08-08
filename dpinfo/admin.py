@@ -278,8 +278,9 @@ class AppVariablesAddForm(forms.ModelForm):
         """
         key = self.cleaned_data.get('key')
         value = self.cleaned_data.get('value')
+        environment = self.cleaned_data.get('environment')
         if key:
-            app_var_obj = AppVariables.objects.filter(key=key)
+            app_var_obj = AppVariables.objects.filter(key=key,environment=environment)
 
             if app_var_obj:
                 raise ValidationError(
@@ -287,7 +288,7 @@ class AppVariablesAddForm(forms.ModelForm):
                         )
 
         if key and value:
-            db_var_obj = DbVariables.objects.filter(key=key)
+            db_var_obj = DbVariables.objects.filter(key=key,environment=environment)
             if db_var_obj:
 
                 raise ValidationError(
@@ -302,10 +303,6 @@ class AppVariablesChangeForm(forms.ModelForm):
 
     #
     def __new__(cls, *args, **kwargs):
-        # super(AppVariablesChangeForm,cls).__new__(cls,*args, **kwargs)
-        #
-        # for field_name,field_obj in  cls.base_fields.items():
-        #     print field_name,field_obj,field_obj.bound_data(),1111111111111111
         return forms.ModelForm.__new__(cls)
     class Meta:
         model = AppVariables
@@ -315,14 +312,6 @@ class AppVariablesChangeForm(forms.ModelForm):
             'value': forms.TextInput(attrs={'size': 80})
         }
 
-    # def clean_key(self):
-    #     key = self.cleaned_data.get('key')
-    #     if key:
-    #         app_var_obj = AppVariables.objects.filter(key=key)
-    #         if app_var_obj:
-    #             raise ValidationError(
-    #                         _("variables already in the table !")
-    #                     )
 
     def clean(self):
         """
@@ -330,9 +319,10 @@ class AppVariablesChangeForm(forms.ModelForm):
         """
         key = self.cleaned_data.get('key')
         value = self.cleaned_data.get('value')
+        enviroment = self.cleaned_data.get('environment')
 
         if key and value:
-            db_var_obj = DbVariables.objects.filter(key=key)
+            db_var_obj = DbVariables.objects.filter(key=key,environment=enviroment)
             if db_var_obj:
 
                 raise ValidationError(
@@ -342,33 +332,6 @@ class AppVariablesChangeForm(forms.ModelForm):
         return self.cleaned_data
 
 
-# class AppVariablesFilter(admin.SimpleListFilter):
-#     title = _('Envirment')
-#     parameter_name = 'key'
-#
-#     def lookups(self, request, model_admin):
-#         l = []
-#         p = re.compile(r'^([^_])+_')
-#
-#         qa = AppVariables.objects.values_list('key',flat=True)
-#         for k in qa:
-#             match = p.match(k)
-#             if match:
-#                 k = match.group().strip('_')
-#                 if k not in l:
-#                     l.append(k)
-#
-#         return [(i+'_',i) for i in l]
-#
-#     def queryset(self, request, queryset):
-#         # print queryset
-#
-#
-#         if self.value():
-#             return queryset.filter(key__startswith=self.value())
-#         else:
-#             return queryset
-#
 
 class AppVariablesAdmin(admin.ModelAdmin):
     # form = AppVariablesForm
@@ -400,40 +363,6 @@ class AppVariablesAdmin(admin.ModelAdmin):
 
     duplicate_app_var.short_description = u"复制应用变量"
     actions = (duplicate_app_var,)
-        # return super(AppVariablesAdmin, self).get_form(request, obj, **kwargs)
-    # def save_model(self, request, obj, form, change):
-    #     print form,type(form)
-    #     print change
-    #     form.add_error("key",ValidationError("dupclicate"))
-    #     try:
-    #         obj.save()
-    #     except (IntegrityError,ValidationError)  as e:
-    #         raise ValidationError(e)
-
-# class DbVariablesForm(forms.ModelForm):
-#     def __init__(self, *args, **kwargs):
-#         super(DbVariablesForm, self).__init__(*args, **kwargs)
-#
-#     class Meta:
-#         model = DbVariables
-#         fields = '__all__'
-#
-#
-#     def clean(self):
-#         """
-#         Checks that all the words belong to the sentence's language.
-#         """
-#         key = self.cleaned_data.get('key')
-#         value = self.cleaned_data.get('value')
-#         if key and value:
-#             db_var_obj = AppVariables.objects.filter(key=key)
-#             if db_var_obj:
-#
-#                 raise ValidationError(
-#                             _("variables already in app variables table !")
-#                         )
-#
-#         return self.cleaned_data
 
 class DbVariablesAddForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
@@ -448,14 +377,6 @@ class DbVariablesAddForm(forms.ModelForm):
             'value': forms.TextInput(attrs={'size': 80})
         }
 
-    # def clean_key(self):
-    #     key = self.cleaned_data.get('key')
-    #     if key:
-    #         app_var_obj = AppVariables.objects.filter(key=key)
-    #         if app_var_obj:
-    #             raise ValidationError(
-    #                         _("variables already in the table !")
-    #                     )
 
     def clean(self):
         """
@@ -463,8 +384,10 @@ class DbVariablesAddForm(forms.ModelForm):
         """
         key = self.cleaned_data.get('key')
         value = self.cleaned_data.get('value')
+        enviroment = self.cleaned_data.get('environment')
+
         if key:
-            app_var_obj = DbVariables.objects.filter(key=key)
+            app_var_obj = DbVariables.objects.filter(key=key,environment=enviroment)
 
             if app_var_obj:
                 raise ValidationError(
@@ -472,7 +395,7 @@ class DbVariablesAddForm(forms.ModelForm):
                         )
 
         if key and value:
-            db_var_obj = AppVariables.objects.filter(key=key)
+            db_var_obj = AppVariables.objects.filter(key=key,environment=enviroment)
             if db_var_obj:
 
                 raise ValidationError(
@@ -494,14 +417,6 @@ class DbVariablesChangeForm(forms.ModelForm):
             'value': forms.TextInput(attrs={'size': 80})
         }
 
-    # def clean_key(self):
-    #     key = self.cleaned_data.get('key')
-    #     if key:
-    #         app_var_obj = AppVariables.objects.filter(key=key)
-    #         if app_var_obj:
-    #             raise ValidationError(
-    #                         _("variables already in the table !")
-    #                     )
 
     def clean(self):
         """
@@ -509,9 +424,11 @@ class DbVariablesChangeForm(forms.ModelForm):
         """
         key = self.cleaned_data.get('key')
         value = self.cleaned_data.get('value')
+        enviroment = self.cleaned_data.get('environment')
+
 
         if key and value:
-            db_var_obj = AppVariables.objects.filter(key=key)
+            db_var_obj = AppVariables.objects.filter(key=key,environment=enviroment)
             if db_var_obj:
 
                 raise ValidationError(
@@ -523,27 +440,6 @@ class DbVariablesFilter(admin.SimpleListFilter):
     title = _('Envirment')
     parameter_name = 'key'
 
-    def lookups(self, request, model_admin):
-        l = []
-        p = re.compile(r'^([^_])+_')
-
-        qa = DbVariables.objects.values_list('key',flat=True)
-        for k in qa:
-            match = p.match(k)
-            if match:
-                k = match.group().strip('_')
-                if k not in l:
-                    l.append(k)
-
-        return [(i, i) for i in l]
-    def queryset(self, request, queryset):
-        # print queryset
-
-
-        if self.value():
-            return queryset.filter(key__startswith=self.value())
-        else:
-            return queryset
 
 
 class DbVariablesAdmin(admin.ModelAdmin):
