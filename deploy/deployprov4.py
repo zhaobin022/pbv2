@@ -1539,220 +1539,249 @@ class DeployHandler(object):
                         self.stop_java_app(app)
 
     def start_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
-        tag='start'
-        msg = "start tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='start'
+                msg = "start tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
 
     def start_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-            }
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                for appfoot in r['app_foot']:
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                    }
 
-            tag='start'
-            msg = "start java service on %s !" % extra_vars['hostname']
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                    tag='start'
+                    msg = "start java service on %s !" % extra_vars['hostname']
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars['hostname'])
 
     def start(self):
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.start_web_app(app)
-            #
-            for app in self.javaapps.keys():
-                self.start_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.start_web_app(app)
+                elif app in self.javaapps:
+                    self.start_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.start_web_app(app)
-                if app in self.javaapps.keys():
-                    self.start_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps:
+                        self.start_web_app(app)
+                    if app in self.javaapps:
+                        self.start_java_app(app)
 
     def restart_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
-        tag='restart'
-        msg = "restart tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='restart'
+                msg = "restart tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
 
     def restart_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-            }
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                for appfoot in r['app_foot']:
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                    }
 
-            tag='restart'
-            msg = "restart java service on %s !" % extra_vars['hostname']
+                    tag='restart'
+                    msg = "restart java service on %s !" % extra_vars['hostname']
 
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars['hostname'])
 
     def restart(self):
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.restart_web_app(app)
-            #
-            for app in self.javaapps.keys():
-                self.restart_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.restart_web_app(app)
+                #
+                if app in self.javaapps:
+                    self.restart_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.restart_web_app(app)
-                if app in self.javaapps.keys():
-                    self.restart_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps:
+                        self.restart_web_app(app)
+                    if app in self.javaapps:
+                        self.restart_java_app(app)
 
     def checkport_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
-        tag='checkport'
-        msg = "checkport tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='checkport'
+                msg = "checkport tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
 
     def checkport_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-            }
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                for appfoot in r['app_foot']:
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                    }
 
-            tag='checkport'
-            msg = "checkport java service on %s !" % extra_vars['hostname']
+                    tag='checkport'
+                    msg = "checkport java service on %s !" % extra_vars['hostname']
 
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars['hostname'])
 
     def checkport(self):
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.checkport_web_app(app)
-            #
-            for app in self.javaapps.keys():
-                self.checkport_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.checkport_web_app(app)
+                #
+                if app in self.javaapps:
+                    self.checkport_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.checkport_web_app(app)
-                if app in self.javaapps.keys():
-                    self.checkport_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps:
+                        self.checkport_web_app(app)
+                    if app in self.javaapps:
+                        self.checkport_java_app(app)
 
     def deploy_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
-        tag='deploy'
-        msg = "deploy web code on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='deploy'
+                msg = "deploy web code on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
 
     def deploy_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-            }
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                for appfoot in r['app_foot']:
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                    }
 
-            tag='deploy'
-            msg = "deploy java code on %s !" % extra_vars['hostname']
+                    tag='deploy'
+                    msg = "deploy java code on %s !" % extra_vars['hostname']
 
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars['hostname'])
 
     def deploy(self):
 
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.deploy_web_app(app)
-                    #
-            for app in self.javaapps.keys():
-                self.deploy_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.deploy_web_app(app)
+                        #
+                if app in self.javaapps:
+                    self.deploy_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.deploy_web_app(app)
-                if app in self.javaapps.keys():
-                    self.deploy_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps:
+                        self.deploy_web_app(app)
+                    if app in self.javaapps:
+                        self.deploy_java_app(app)
 
     def config_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
 
-        templates = self.config_dic['webapps'][app].get('templates')
-        if templates:
-            extra_vars['templates'] = templates
+                templates = r.get('templates')
+                if templates:
+                    extra_vars['templates'] = templates
 
-        tag='config'
-        msg = "config web code on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='config'
+                msg = "config web code on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
 
     def config_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-                'app_foot':str(appfoot),
-            }
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                for appfoot in r['app_foot']:
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                        'app_foot':str(appfoot),
+                    }
 
-            templates = self.config_dic['javaapps'][app].get('templates')
-            if templates:
-                extra_vars['templates'] = templates
+                    templates = r['templates']
+                    if templates:
+                        extra_vars['templates'] = templates
 
-            tag='config'
-            msg = "config java code on %s !" % extra_vars['hostname']
+                    tag='config'
+                    msg = "config java code on %s !" % extra_vars['hostname']
 
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars['hostname'])
 
     def config(self):
 
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.config_web_app(app)
-                    #
-            for app in self.javaapps.keys():
-                self.config_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.config_web_app(app)
+                        #
+                if app in self.javaapps:
+                    self.config_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.config_web_app(app)
-                if app in self.javaapps.keys():
-                    self.config_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps:
+                        self.config_web_app(app)
+                    if app in self.javaapps:
+                        self.config_java_app(app)
 
     def deploy_and_config_web_app(self,app):
         for r in self.inventory_list:
@@ -3140,8 +3169,8 @@ if __name__ == '__main__':
     #
     #
     # args = parser.parse_args()
-    d = {'job_type': 'all', 'envid': '119', 'depapps': 'all', 'mailtype': None, 'package_file': None,
-     'build_number': None, 'debug': False, 'production': False, 'mavenbase': False, 'ant': False, 'command_args': None, 'src_job_dir': None, 'is_jar': False}
+    d = {'job_type': 'build', 'envid': '119', 'depapps': 'fcs', 'mailtype': None, 'package_file': None,
+     'build_number': 8, 'debug': False, 'production': False, 'mavenbase': False, 'ant': False, 'command_args': None, 'src_job_dir': None, 'is_jar': False}
     deploy_handler = DeployHandler(**d)
 
     deploy_handler.run()
