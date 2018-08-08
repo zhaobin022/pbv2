@@ -1,0 +1,9 @@
+- hosts: all
+  gather_facts: false
+  remote_user: root
+  tags:
+    - stop
+    - all_job
+  tasks: 
+    - name: test connection
+      ping: 
