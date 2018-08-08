@@ -167,10 +167,10 @@ class HostEnvironmentRelationAdmin(admin.ModelAdmin):
 
 
     search_fields = ("environment__environment_name","group__name","tomcat__name","hosts__ipaddr",)
-    list_display = ("environment","group","app_foot","group_type","tomcat","get_servers","project","priority",)
-    list_editable = ("group","app_foot","group_type","tomcat","project",)
-    filter_horizontal = ("app_variables","db_variables","hosts","templates",)
-    raw_id_fields = ("group","app_foot","tomcat",)
+    list_display = ("environment","group","group_type","tomcat","get_servers","project","priority",)
+    list_editable = ("group","group_type","tomcat","project",)
+    filter_horizontal = ("app_variables","db_variables","hosts","templates","app_foot",)
+    raw_id_fields = ("group","tomcat",)
     list_filter = ("environment__environment_name","project__name","project__version__name")
     list_per_page = 5
     def get_servers(self,obj):
@@ -654,8 +654,8 @@ class TomcatAdmin(admin.ModelAdmin):
 
         return mark_safe(content)
 
-    list_display = ("name","http_type","shutdown_port","http_port","https_port","jvm_size","get_url")
-    list_editable =  ("http_type","shutdown_port","http_port","https_port","jvm_size",)
+    list_display = ("id","name","http_type","shutdown_port","http_port","https_port","jvm_size","get_url")
+    list_editable =  ("name","http_type","shutdown_port","http_port","https_port","jvm_size",)
     ordering = ("shutdown_port","http_port","https_port","jvm_size",)
     search_fields = ("name",)
 

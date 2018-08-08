@@ -49,7 +49,7 @@ except ImportError:
 
 
 class AnsibleApi2(object):
-    def __init__(self,inventory_dict,tag):
+    def __init__(self,inventory_dict,tag,hostname=None):
         self.tags_str = tag
 
         Options = namedtuple('Options',
@@ -84,11 +84,12 @@ class AnsibleApi2(object):
             for h in inventory_dict['hosts']:
                 self.inventory_data.add_host(h['ipaddr'], group=inventory_dict['group']['name'])
         elif inventory_dict['group_type']  == 'javaapps':
-            java_group_name = "%s_%d" % (inventory_dict['group']['name'],inventory_dict['app_foot'])
-            self.inventory_data.add_group(java_group_name)
-            all_group.add_child_group(self.inventory_data.groups[java_group_name])
-            for h in inventory_dict['hosts']:
-                self.inventory_data.add_host(h['ipaddr'], group=java_group_name)
+            if hostname:
+                java_group_name = hostname
+                self.inventory_data.add_group(java_group_name)
+                all_group.add_child_group(self.inventory_data.groups[java_group_name])
+                for h in inventory_dict['hosts']:
+                    self.inventory_data.add_host(h['ipaddr'], group=java_group_name)
 
         if inventory_dict['environment']['app_var']:
             for i in inventory_dict['environment']['app_var']:
@@ -151,8 +152,8 @@ class AnsibleApi2(object):
 
             passwords = {}
             executor = PlaybookExecutor(
-             #   playbooks=[playbook_path],
-                playbooks=['deploy/test.yml'],
+               playbooks=[playbook_path],
+             #    playbooks=['deploy/test.yml'],
                 inventory=self.inventory,
                 variable_manager=self.variable_manager,
                 loader=self.loader,
@@ -668,6 +669,15 @@ class DeployHandler(object):
         self.allapp_list = [ i['group']['name'] for i in self.inventory_list ]
 
         self.job_workspace = os.path.join(self.base_dir, self.job_name)
+
+        # file_list = ['javaapps.yml','roles','tomcat.yml','webapps.yml']
+        #
+        # ret_list = list(map(lambda x: os.path.exists(os.path.join(self.job_workspace, x)), file_list))
+        #
+        # if not any(ret_list):
+        #     ansible_role_tempate = os.path.join(self.base_dir,'ansible_role_template')
+        #     x = PrettyTable(["init job workspace "])
+        #     Utils.rsync_command(ansible_role_tempate,self.job_workspace,x)
 
         self.html = '''
     <HTML>
@@ -1328,12 +1338,14 @@ class DeployHandler(object):
             depapps_list = self.depapps.split(',')
             for app in depapps_list:
                 if app in self.javaapps:
+                    '''
                     if self.deploy_type=='uat':
                         if app not in changeall_list:
                             sys.exit("app (%s) not in changeall list , if you want to deploy UAT please check !" % app)
                     elif self.deploy_type == 'fun':
                         if app not in change_list:
                             sys.exit("app (%s) not in change list , if you want to deploy FUN please check !" % app)
+                    '''
 
                     self.sync_javaapps(app)
                 elif app in self.webapps:
@@ -1352,7 +1364,7 @@ class DeployHandler(object):
             # changeall_redis_key = "%s_changeall" % self.app_full_name
             # print "add change reocder(%s) into redis" % app_name
          #   self.r.delete(self.change_redis_key)
-    def run_playbook(self,playbook,tag,extra_vars,msg,inventory):
+    def run_playbook(self,playbook,tag,extra_vars,msg,inventory,hostname=None):
 
         # if not os.path.exists(self.host_file_path):
         #     msg = "don't exist file (%s)" % self.host_file_path
@@ -1362,7 +1374,7 @@ class DeployHandler(object):
         #     sys.exit(msg)
         print
         print(msg)
-        ansible_handler = AnsibleApi2(inventory, tag)
+        ansible_handler = AnsibleApi2(inventory, tag,hostname=hostname)
         ret = ansible_handler.run_playbook(playbook, extra_vars)
         # print ret
         if self.DEBUG:
@@ -1441,82 +1453,90 @@ class DeployHandler(object):
         self.run_playbook(play_book, tag, extra_vars, msg)
 
 
+
+
     def deploy_and_config_tomcat(self,app):
-        play_book = '%s/%s' % (self.job_name, 'tomcat.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                tomcat_info = r['tomcat']
+                play_book = '%s/%s' % (self.job_name, 'tomcat.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-            'jvmsize': self.config_dic['webapps'][app]['jvm_size'],
-            'shutport': self.config_dic['webapps'][app]['shut_port'],
-            'httpport': self.config_dic['webapps'][app]['http_port'],
-            'httpsport': self.config_dic['webapps'][app]['https_port'],
-        }
-        if self.webapps[app]['http_type'] == 'http':
-            tag = 'deploy_and_config_http'
-        elif self.webapps[app]['http_type'] == 'https':
-            tag = 'deploy_and_config_https'
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': tomcat_info['name'],
+                    'jvmsize': tomcat_info['jvm_size'],
+                    'shutport': tomcat_info['shutdown_port'],
+                    'httpport': tomcat_info['http_port'],
+                    'httpsport': tomcat_info['https_port'],
+                }
+                if tomcat_info['http_type'] == 'http':
+                    tag = 'deploy_and_config_http'
+                elif tomcat_info['http_type']  == 'https':
+                    tag = 'deploy_and_config_https'
 
-        msg = "configration the tomcat service on %s !" % app
-        print(extra_vars, 'config tomcate template')
-
-        self.run_playbook(play_book, tag, extra_vars, msg)
+                msg = "configration the tomcat service on %s !" % app
+                print(extra_vars, 'config tomcate template')
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
     def tomcat(self):
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                if app in self.webapps.keys():
+            for app in self.webapps:
+                if app in self.webapps:
                     # print 'deploy tomcat'
                     self.deploy_and_config_tomcat(app)
 
         else:
             depapps_list = self.depapps.split(',')
             for app in depapps_list:
-                if app in self.webapps.keys():
+                if app in self.webapps:
                     self.deploy_and_config_tomcat(app)
 
 
 
     def stop_web_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'webapps.yml')
+        for r in self.inventory_list:
+            if r['group']['name'] == app:
+                play_book = '%s/%s' % (self.job_name, 'webapps.yml')
 
-        extra_vars = {
-            'rolename': app,
-            'deploypath': self.config_dic['webapps'][app]['tomcatname'],
-        }
+                extra_vars = {
+                    'rolename': app,
+                    'deploypath': r['tomcat']['name'],
+                }
 
-        tag='stop'
-        msg = "stop tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
+                tag='stop'
+                msg = "stop tomcat service on %s(%s) !" % (app,extra_vars['deploypath'])
 
-        self.run_playbook(play_book,tag,extra_vars,msg)
+                self.run_playbook(play_book,tag,extra_vars,msg,r)
 
     def stop_java_app(self,app):
-        play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-        for appfoot in self.config_dic['javaapps'][app]['appfoot']:
-            extra_vars = {
-                'hostname': "%s_%s" % (app,str(appfoot)),
-                'rolename': app,
-            }
+        for r in self.inventory_list:
+            play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+            for appfoot in r['app_foot']:
+                extra_vars = {
+                    'hostname': "%s_%s" % (app,str(appfoot)),
+                    'rolename': app,
+                }
 
-            tag='stop'
+                tag='stop'
 
-            msg = "stop java service on %s !" % extra_vars['hostname']
+                msg = "stop java service on %s !" % extra_vars['hostname']
 
-            self.run_playbook(play_book, tag, extra_vars, msg)
+                self.run_playbook(play_book, tag, extra_vars, msg,r,hostname= extra_vars['hostname'])
 
     def stop(self):
         if self.depapps == 'all':
-            for app in self.webapps.keys():
-                self.stop_web_app(app)
-            #
-            for app in self.javaapps.keys():
-                self.stop_java_app(app)
+            for app in self.allapp_list:
+                if app in self.webapps:
+                    self.stop_web_app(app)
+                elif app in self.javaapps:
+                    self.stop_java_app(app)
         else:
             depapps_list = self.depapps.split(',')
-            for app in depapps_list:
-                if app in self.webapps.keys():
-                    self.stop_web_app(app)
-                if app in self.javaapps.keys():
-                    self.stop_java_app(app)
+            for app in self.allapp_list:
+                if app in depapps_list:
+                    if app in self.webapps.keys():
+                        self.stop_web_app(app)
+                    if app in self.javaapps.keys():
+                        self.stop_java_app(app)
 
     def start_web_app(self,app):
         play_book = '%s/%s' % (self.job_name, 'webapps.yml')
@@ -1751,7 +1771,7 @@ class DeployHandler(object):
                 tag='all_job'
                 msg = "(stop -> deploy -> config -> start) web code on %s(%s) !" % (app,extra_vars['deploypath'])
 
-                self.run_playbook(play_book, tag, extra_vars, msg,inventory)
+                self.run_playbook(play_book, tag, extra_vars, msg,r)
                 if self.deploy_type == 'fun':
                     self.r.srem(self.change_redis_key,app)
 
@@ -1760,22 +1780,22 @@ class DeployHandler(object):
     def deploy_and_config_java_app(self,app):
         for r in self.inventory_list:
             if app == r['group']['name']:
-                play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
-                appfoot = r['app_foot']
-                extra_vars = {
-                    'hostname': "%s_%s" % (app,str(appfoot)),
-                    'rolename': app,
-                    'app_foot':str(appfoot),
-                }
+                for appfoot in r['app_foot']:
+                    play_book = '%s/%s' % (self.job_name, 'javaapps.yml')
+                    extra_vars = {
+                        'hostname': "%s_%s" % (app,str(appfoot)),
+                        'rolename': app,
+                        'app_foot':str(appfoot),
+                    }
 
-                templates = r.get('templates')
-                if templates:
-                    extra_vars['templates'] = templates
+                    templates = r.get('templates')
+                    if templates:
+                        extra_vars['templates'] = templates
 
-                tag='all_job'
-                msg = "(stop -> deploy -> config -> start) java code on (%s) !" % extra_vars['hostname']
+                    tag='all_job'
+                    msg = "(stop -> deploy -> config -> start) java code on (%s) !" % extra_vars['hostname']
 
-                self.run_playbook(play_book, tag, extra_vars, msg,r)
+                    self.run_playbook(play_book, tag, extra_vars, msg,r,hostname=extra_vars.get('hostname'))
                 if self.deploy_type == 'fun':
                     self.r.srem(self.change_redis_key,app)
 
@@ -3120,7 +3140,7 @@ if __name__ == '__main__':
     #
     #
     # args = parser.parse_args()
-    d = {'job_type': 'all', 'envid': '119', 'depapps': 'fcs', 'mailtype': None, 'package_file': None,
+    d = {'job_type': 'all', 'envid': '119', 'depapps': 'all', 'mailtype': None, 'package_file': None,
      'build_number': None, 'debug': False, 'production': False, 'mavenbase': False, 'ant': False, 'command_args': None, 'src_job_dir': None, 'is_jar': False}
     deploy_handler = DeployHandler(**d)
 

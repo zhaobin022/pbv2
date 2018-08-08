@@ -181,7 +181,7 @@ class HostEnvironmentRelation(models.Model):
     group = models.ForeignKey(Group,on_delete=models.CASCADE)
     hosts = models.ManyToManyField(Hosts)
     project = models.ForeignKey(Project,on_delete=models.CASCADE)
-    app_foot = models.ForeignKey(JavaAppFoot,blank=True,null=True,on_delete=models.CASCADE)
+    app_foot = models.ManyToManyField(JavaAppFoot,blank=True)
     app_variables = models.ManyToManyField(AppVariables,blank=True,related_name="en_r_app_var_set")
     db_variables = models.ManyToManyField(DbVariables,blank=True,related_name="en_r_db_var_set")
     templates = models.ManyToManyField(Templates,blank=True)
@@ -194,7 +194,7 @@ class HostEnvironmentRelation(models.Model):
     priority = models.PositiveIntegerField(default=1)
 
     class Meta:
-        unique_together = (("environment", "group","project","app_foot","group_type"),)
+        unique_together = (("environment", "group","project","group_type"),)
         verbose_name = "绑定关系表"
         verbose_name_plural = "绑定关系表"
 
