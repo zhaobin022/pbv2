@@ -24,7 +24,9 @@ class JenkinsServer(models.Model):
     token = models.CharField(max_length=256)
     api_url = models.URLField()
     workspace = models.CharField(max_length=256,blank=True,null=True)
-
+    mavne_job_xml_template = models.TextField(null=True,blank=True)
+    svn_xml_template = models.TextField(null=True,blank=True)
+    svn_credentials_id = models.CharField(max_length=128,null=True,blank=True)
 
     def __str__(self):
         return self.api_url
@@ -54,7 +56,7 @@ class JenkinsJob(models.Model):
     action_list=models.ManyToManyField(Operation,blank=True,related_name="jks_job")
 
     jenkins_server = models.ForeignKey(JenkinsServer,on_delete=models.CASCADE)
-    environment = models.ForeignKey(dp_models.Environment,blank=True,null=True,on_delete=models.CASCADE)
+    # environment = models.ForeignKey(dp_models.Environment,blank=True,null=True,on_delete=models.CASCADE)
 
     emails = models.ManyToManyField(dp_models.EmailList,blank=True)
     job_type_choice = (
@@ -69,7 +71,7 @@ class JenkinsJob(models.Model):
     )
     job_type = models.PositiveIntegerField(choices=job_type_choice,default=2)
     auto_build = models.BooleanField(default=False)
-    # svn_url = models.URLField(null=True)
+    svn_url = models.URLField(null=True,blank=True)
 
     # current_svn_version = models.PositiveIntegerField(blank=True,null=True)
     # fun_svn_version = models.PositiveIntegerField(blank=True,null=True)
@@ -93,15 +95,35 @@ MyUser.add_to_class('jenkins_job',models.ManyToManyField(JenkinsJob,blank=True))
 
 @receiver(post_delete, sender=JenkinsJob)
 def delete_job_after(sender, instance, **kwargs):
+
     js_obj = JenkinsApi(instance.jenkins_server)
-    js_obj.delete_job(instance.job_name)
+    if js_obj.jk_ping():
+        js_obj.delete_job(instance.job_name)
 
 
 @receiver(pre_save , sender=JenkinsJob)
 def save_job_before(sender, instance,raw,update_fields, **kwargs):
 
     old = JenkinsJob.objects.filter(pk=instance.pk).first()
-
-    if old and old.job_name != instance.job_name:
+    if old:
         js_obj = JenkinsApi(instance.jenkins_server)
-        js_obj.rename_job(old.job_name,instance.job_name)
+
+        if old and old.job_name != instance.job_name:
+            js_obj.rename_job(old.job_name,instance.job_name)
+
+        if old.svn_url != instance.svn_url:
+            old_svn_url = js_obj.get_job_svn_url(instance.job_name)
+            if old_svn_url != instance.svn_url:
+                js_obj.set_svn_url(instance)
+
+
+
+
+@receiver(post_save , sender=JenkinsJob)
+def save_job_after(sender, instance,created,raw,update_fields, **kwargs):
+
+    if created:
+        jk_server = instance.jenkins_server
+        jk_handler = JenkinsApi(jk_server)
+        jk_handler.create_job(instance)
+

@@ -10,17 +10,25 @@ from . import models
 from utils.jenkins_api import JenkinsApi
 
 
+class CheckJkConnForm(forms.ModelForm):
 
-class JenkinsJobForm(forms.ModelForm):
+    def ping_jk_server(self):
+        jk_handler = JenkinsApi(self.cleaned_data['jenkins_server'])
+        if not jk_handler.jk_ping():
+            raise forms.ValidationError("Can't connect jenkins server !")
+
+class JenkinsChangeJobForm(CheckJkConnForm):
     def __init__(self, *args, **kwargs):
-        super(JenkinsJobForm, self).__init__(*args, **kwargs)
+        super(JenkinsChangeJobForm, self).__init__(*args, **kwargs)
 
     class Meta:
         model = models.JenkinsJob
         fields = '__all__'
 
     def clean(self):
+
         cleaned_data = super().clean()
+        self.ping_jk_server()
         if self.instance:
             try:
                 default_action_type_obj = cleaned_data["default_action_type"]
@@ -35,16 +43,41 @@ class JenkinsJobForm(forms.ModelForm):
             except Exception as e:
                 pass
 
+
+class JenkinsCreateJobForm(CheckJkConnForm):
+    def __init__(self, *args, **kwargs):
+        super(JenkinsCreateJobForm, self).__init__(*args, **kwargs)
+
+    class Meta:
+        model = models.JenkinsJob
+        fields = '__all__'
+
+    def clean(self):
+        self.ping_jk_server()
+        jenkins_server = self.cleaned_data['jenkins_server']
+        jk_handler = JenkinsApi(jenkins_server)
+        if jk_handler.server.job_exists(self.cleaned_data['job_name']):
+            self.add_error("job_name", forms.ValidationError(_('job exist in jenkins server !')))
+
+
 class JenkinsJobAdmin(admin.ModelAdmin):
-    list_display = ("id","job_name","project","default_action_type","jenkins_server","environment","job_type","auto_build")
+    list_display = ("id","job_name","project","default_action_type","jenkins_server","job_type","auto_build")
     search_fields = ("job_name","project",)
     raw_id_fields = ("project",)
-    list_editable = ("job_name","project","default_action_type","jenkins_server","environment","job_type","auto_build",)
+    list_editable = ("job_name","project","default_action_type","jenkins_server","job_type","auto_build",)
     list_filter = ("auto_build",)
     filter_horizontal = ("emails","action_list")
     list_per_page = 20
 
-    form = JenkinsJobForm
+
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj:  # obj is not None, so this is a change page
+            return JenkinsChangeJobForm
+        else:  # obj is None, so this is an add page
+            return JenkinsCreateJobForm
+    # form = JenkinsChangeJobForm
+    # add_form = JenkinsCreateJobForm
 
     def duplicate_jenkins_job(modeladmin, request, queryset):
         try:
