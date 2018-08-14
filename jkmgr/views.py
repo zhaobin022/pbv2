@@ -50,6 +50,7 @@ class ServerListView(View):
     def get(self,request):
 
         if request.is_ajax():
+            import time
 
 
             search = request.GET.get("search", "")
@@ -66,7 +67,7 @@ class ServerListView(View):
 
             data_list = list(JenkinsServer.objects.filter(conn).values(*values))
 
-            p = CustomPaginator(data_list, 2,request)
+            p = CustomPaginator(data_list, request,page_size=2)
             page_content = p.gen_page_html()
 
 

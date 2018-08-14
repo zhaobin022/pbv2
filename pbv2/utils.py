@@ -8,10 +8,12 @@ from django.core.paginator import Paginator
 
 
 class CustomPaginator(Paginator):
-    def __init__(self,qs,page_size,request):
+    def __init__(self,qs,request,page_size=5,show_pager_count=4):
         super(CustomPaginator, self).__init__(qs,page_size)
         self.request = request
         self.current_page_obj = self.get_current_page_obj()
+        self.show_pager_count = show_pager_count
+
     def get_current_page_obj(self):
         current_page_num = self.request.GET.get('page',"")
         try:
@@ -30,11 +32,51 @@ class CustomPaginator(Paginator):
         html = ""
         if self.current_page_obj.has_previous():
             html+= '''<button  class="btn btn-white" page="{}"><i class="fa fa-chevron-left"></i></button>'''.format(self.current_page_obj.previous_page_number())
+        half_show_count, remainder = divmod(self.show_pager_count,2)
 
+        front_tag = False
+        back_tag = False
 
-        for p in self.page_range:
+        if self.num_pages < self.show_pager_count:
+            start = 1
+            end = self.num_pages + 1
+            if end -1 < self.num_pages:
+                back_tag = True
+        else:
+            if self.current_page_obj.number <= half_show_count:
+                start = 1
+                end = self.show_pager_count + 1
+                if end -1 < self.num_pages:
+                    back_tag = True
+            else:
+                if self.current_page_obj.number + half_show_count > self.num_pages:
+                    start = self.num_pages - self.show_pager_count + 1
+                    end = self.num_pages + 1
+                    if start != 1:
+                        front_tag = True
+                    if end-1 < self.num_pages:
+                        back_tag = True
+
+                else:
+
+                    start = self.current_page_obj.number - half_show_count
+
+                    end = self.current_page_obj.number + half_show_count
+                    if remainder:
+                        end += 1
+                    if start != 1:
+                        front_tag = True
+                    if end-1 < self.num_pages:
+                        back_tag = True
+
+        if front_tag:
+            html+= '''<button  class="btn btn-white">..</button>'''
+
+        for p in range(start,end):
             html+= '''<button page="{}" class="btn btn-white  {}">{}</button>'''.format(str(p),"active" if p == self.current_page_obj.number else "" ,str(p))
 
+        if back_tag:
+            html+= '''<button  class="btn btn-white">..</button>'''
 
         if self.current_page_obj.has_next():
             html+= '''<button page="{}" class="btn btn-white"><i class="fa fa-chevron-right"></i></button>'''.format(self.current_page_obj.next_page_number())
