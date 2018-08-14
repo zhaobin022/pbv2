@@ -1,16 +1,16 @@
 from django.views import View
 from django.shortcuts import render,HttpResponseRedirect,reverse,HttpResponse
-from django.contrib.auth import authenticate
-import copy
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import logout
 
 from .forms import LoginForm
 from .utils import ValidCodeImg
 
 
-class IndexView(View):
+class IndexView(LoginRequiredMixin,View):
 
     def get(self,request):
-        return render(request,'index.html')
+        return render(request,'base/base.html')
 
 
 class GetValidImgView(View):
@@ -24,7 +24,6 @@ class GetValidImgView(View):
 class LoginView(View):
     def get(self,request):
         login_form = LoginForm()
-
         return render(request,'login.html',locals())
 
 
@@ -33,11 +32,14 @@ class LoginView(View):
         login_form = LoginForm(request.POST)
         login_form._request = request
         if login_form.is_valid():
-            if user is not None:
-                if user.is_active:
-                    return HttpResponseRedirect(reverse('index'))
-                else:
-                    return render(request, 'login.html', {"login_form":login_form})
-
-
+            return HttpResponseRedirect(reverse('index'))
         return render(request,'login.html',{"login_form":login_form})
+
+
+
+class LogoutView(LoginRequiredMixin,View):
+    def get(self,request):
+        logout(request)
+        return HttpResponseRedirect(reverse('user_login'))
+
+

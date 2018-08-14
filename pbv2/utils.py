@@ -2,9 +2,44 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import random
+from django.shortcuts import reverse
+from copy import deepcopy
+from django.core.paginator import Paginator
 
 
+class CustomPaginator(Paginator):
+    def __init__(self,qs,page_size,request):
+        super(CustomPaginator, self).__init__(qs,page_size)
+        self.request = request
+        self.current_page_obj = self.get_current_page_obj()
+    def get_current_page_obj(self):
+        current_page_num = self.request.GET.get('page',"")
+        try:
+            current_page_num = int(current_page_num)
+        except Exception as e:
+            current_page_num = 1
 
+        return  self.page(current_page_num)
+
+    def get_current_page_object_list(self):
+        return self.current_page_obj.object_list
+
+
+    def gen_page_html(self):
+
+        html = ""
+        if self.current_page_obj.has_previous():
+            html+= '''<button  class="btn btn-white" page="{}"><i class="fa fa-chevron-left"></i></button>'''.format(self.current_page_obj.previous_page_number())
+
+
+        for p in self.page_range:
+            html+= '''<button page="{}" class="btn btn-white  {}">{}</button>'''.format(str(p),"active" if p == self.current_page_obj.number else "" ,str(p))
+
+
+        if self.current_page_obj.has_next():
+            html+= '''<button page="{}" class="btn btn-white"><i class="fa fa-chevron-right"></i></button>'''.format(self.current_page_obj.next_page_number())
+
+        return html
 class ValidCodeImg:
     def __init__(self, width=150, height=30, code_count=4, font_size=32, point_count=20, line_count=3,
                  img_format='png'):

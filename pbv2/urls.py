@@ -18,7 +18,7 @@ from django.urls import path
 from django.conf.urls import url,include
 from rest_framework.authtoken import views
 
-from .views import IndexView,LoginView,GetValidImgView
+from .views import IndexView,LoginView,GetValidImgView,LogoutView
 
 
 
@@ -28,6 +28,9 @@ urlpatterns = [
     url(r'^api/', include('api.urls')),
     url(r'^api-token-auth/', views.obtain_auth_token),
     url(r'^$', IndexView.as_view(),name='index'),
-    url(r'^login$', LoginView.as_view(),name='user_login'),
+    url(r'^login', LoginView.as_view(),name='user_login'),
+    url(r'^logout', LogoutView.as_view(),name='user_logout'),
     url(r'^get_valid_img',GetValidImgView.as_view(),name='get_valid_img'),
+    url(r'^jkmgr/', include('jkmgr.urls',namespace='jkmgr')),
+
 ]

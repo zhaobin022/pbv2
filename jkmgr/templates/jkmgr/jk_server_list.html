@@ -1,0 +1,201 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block custcss %}
+<link href="{% static 'css/plugins/iCheck/custom.css' %}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>主机列表</h2>
+        <ol class="breadcrumb">
+            <li>
+                <a href="index.html">主页</a>
+            </li>
+            <li>
+                <strong>主机列表</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2">
+
+    </div>
+</div>
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>主机列表</h5>
+            </div>
+            <div class="ibox-content">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="input-group"><input id="search_content" type="text" placeholder="请输入搜索内容" class="input-sm form-control"> <span class="input-group-btn">
+                            <button type="button" class="btn btn-sm btn-primary"> 搜索</button> </span></div>
+                    </div>
+                </div>
+            </br>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                 <div id="page_content" class="btn-group">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</div>
+
+{% endblock %}
+{% block custjs %}
+
+<script src="{% static 'js/plugins/metisMenu/jquery.metisMenu.js' %}"></script>
+<script src="{% static 'js/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+
+ <!-- iCheck -->
+<script src="{% static 'js/plugins/iCheck/icheck.min.js' %}"></script>
+  <!-- Custom and plugin javascript -->
+<script src="{% static 'js/inspinia.js' %}"></script>
+<script src="{% static 'js/plugins/pace/pace.min.js' %}"></script>
+
+
+<script>
+
+function initTableHead(ret) {
+   var tr = document.createComment('tr');
+
+    $.each(ret.table_config,function (k,v) {
+        if(v.display){
+            var th = document.createElement('th');
+            th.innerHTML = v.title;
+            $('thead').append(th);
+        }
+
+    });
+    $('thead').append(tr);
+
+};
+
+
+function initTableBody(ret){
+    $.each(ret.data_list,function (k,row) {
+        var tr = document.createElement('tr');
+        $.each(ret.table_config,function (k,conf) {
+            if (conf.display) {
+                var td = document.createElement('td');
+                var content = '';
+                var kwargs_dict = {};
+                if (conf.text){
+                    $.each(conf.text.kwargs,function (kwargs_key,kwargs_value) {
+
+                         if(kwargs_value.substring(0,1) == "@") {
+                              var key = kwargs_value.substring(1,kwargs_value.length);
+                              kwargs_dict[kwargs_key] = row[key];
+                         };
+                    });
+
+                    content = conf.text.tpl.format(kwargs_dict);
+                } else {
+                    content = row[conf.q];
+
+                };
+                $(td).html(content);
+                $(tr).append(td);
+            };
+         });
+        $('tbody').append(tr);
+    });
+};
+
+
+function  initPage(ret) {
+    $('#page_content').html(ret.page_content);
+};
+
+
+function initTable(page){
+   <!-- init table -->
+    $('#loading').removeClass('hide');
+    emptyTable();
+    var data = {}
+    var search_content = $('#search_content').val();
+    if (search_content){
+        data['search'] = search_content
+    };
+
+    data['page'] = page;
+    $.ajax({
+        url:"{% url 'jkmgr:server_list' %}",
+        type: 'GET',
+        data: data,
+        dataType: 'JSON',
+        success:function (response) {
+            /* 处理choice */
+            {#GLOBAL_CHOICES_DICT = response.global_choices_dict;#}
+
+
+            /* 处理表头 */
+            initTableHead(response);
+            /* 处理表内容 */
+            initTableBody(response);
+
+            initPage(response);
+            $('#loading').addClass('hide');
+        },
+        error:function () {
+            $('#loading').addClass('hide');
+        }
+    });
+};
+
+function emptyTable(){
+    $('thead').empty();
+    $('tbody').empty();
+    $('page_content').empty();
+
+};
+
+
+function bindSearch() {
+     $('#search_content').on('input propertychange', function() {
+        var page = 1
+        initTable(1);
+    });
+}
+
+function  bindPageElements() {
+    $("body").on("click", "[page]", function() {
+        var page = $(this).attr("page");
+        initTable(page);
+    });
+
+};
+
+function bindEvents() {
+    bindSearch();
+    bindPageElements();
+};
+$(document).ready(function(){
+    <!-- String format function -->
+    String.prototype.format = function (args) {
+        return this.replace(/\{(\w+)\}/g, function (s, i) {
+            return args[i];
+        });
+    };
+
+    bindEvents();
+    initTable(1);
+});
+
+</script>
+
+
+{% endblock %}

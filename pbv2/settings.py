@@ -61,7 +61,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            os.path.join(BASE_DIR,'templates')
+            os.path.join(BASE_DIR,'templates'),
+            os.path.join(BASE_DIR, 'jkmgr','templates'),
         ],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -131,7 +132,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
-
+LOGIN_URL = '/login/'
 
 
 # AUTH_USER_MODEL = 'uc.UserProfile'

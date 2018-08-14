@@ -48,7 +48,7 @@
                                 <li><a href="contacts.html">好友</a></li>
                                 <li><a href="mailbox.html">信箱</a></li>
                                 <li class="divider"></li>
-                                <li><a href="login.html">登出</a></li>
+                                <li><a href="{% url 'user_logout' %}">登出</a></li>
                             </ul>
                         </div>
                         <div class="logo-element">
@@ -82,7 +82,7 @@
                     <span class="m-r-sm text-muted welcome-message">欢迎来到贵金属部署管理系统</span>
                 </li>
                 <li>
-                    <a href="login.html">
+                    <a href="{% url 'user_logout' %}">
                         <i class="fa fa-sign-out"></i> 注销
                     </a>
                 </li>

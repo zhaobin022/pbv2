@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import widgets
-from django.contrib.auth import authenticate,get_user_model
+from django.contrib.auth import authenticate,get_user_model,login
 
 class LoginForm(forms.Form):
     username = forms.CharField(
@@ -50,10 +50,10 @@ class LoginForm(forms.Form):
             user_obj = user_model.objects.filter(username=self.cleaned_data['username'])
             if user_obj:
                 if user_obj.first().check_password(self.cleaned_data['password']):
-                    authenticate(username=self.cleaned_data['username'], password=self.cleaned_data['password'])
+                    user = authenticate(username=self.cleaned_data['username'], password=self.cleaned_data['password'])
+                    login(self._request,user)
                 else:
                     self.add_error('password','密码不正确')
-
             else:
                 self.add_error('username', '用户不存在')
 
