@@ -30,12 +30,11 @@ class CustomPaginator(Paginator):
     def gen_page_html(self):
 
         html = ""
-        if self.current_page_obj.has_previous():
-            html+= '''<button  class="btn btn-white" page="{}"><i class="fa fa-chevron-left"></i></button>'''.format(self.current_page_obj.previous_page_number())
-        half_show_count, remainder = divmod(self.show_pager_count,2)
 
         front_tag = False
         back_tag = False
+        half_show_count, remainder = divmod(self.show_pager_count, 2)
+
 
         if self.num_pages < self.show_pager_count:
             start = 1
@@ -69,6 +68,15 @@ class CustomPaginator(Paginator):
                     if end-1 < self.num_pages:
                         back_tag = True
 
+        if start >1:
+            html += '''<button  class="btn btn-white" page="1">首页</button>'''
+
+
+
+        if self.current_page_obj.has_previous():
+            html += '''<button  class="btn btn-white" page="{}"><i class="fa fa-chevron-left"></i></button>'''.format(
+                self.current_page_obj.previous_page_number())
+
         if front_tag:
             html+= '''<button  class="btn btn-white">..</button>'''
 
@@ -80,6 +88,9 @@ class CustomPaginator(Paginator):
 
         if self.current_page_obj.has_next():
             html+= '''<button page="{}" class="btn btn-white"><i class="fa fa-chevron-right"></i></button>'''.format(self.current_page_obj.next_page_number())
+
+        if end-1 < self.num_pages:
+            html += '''<button  class="btn btn-white" page="{}">尾页</button>'''.format(str(self.num_pages))
 
         return html
 class ValidCodeImg:

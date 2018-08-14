@@ -32,6 +32,10 @@ class ServerListView(View):
             'q': 'api_url',
             "display": True,
             'title': '接口地址',
+            'text': {
+                'tpl': '''<a  href="{href}" target="_blank">{href}</a>''',
+                'kwargs':{'href':'@api_url'},
+            },
         },
         {
             'q': 'workspace',
@@ -42,8 +46,10 @@ class ServerListView(View):
             'q': None,
             "display": True,
             'title': '操作',
-            'text': {'tpl': '''<a class="btn btn-primary btn-sm" href="/jkmgr/job_list/{id}/">详情</a>''',
-                     'kwargs': {'id': '@id'}},
+            'text': {
+                'tpl': '''<a class="btn btn-primary btn-sm" href="/jkmgr/job_list/{id}/">详情</a>''',
+                'kwargs': {'id': '@id'}
+            },
         },
     ]
 
