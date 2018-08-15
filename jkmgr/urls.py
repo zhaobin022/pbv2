@@ -16,11 +16,13 @@ Including another URLconf
 from django.conf.urls import url
 from django.urls import path
 
-from .views import ServerListView
+from .views import ServerListView,JobListView,ProjectListView
 
 
 app_name='jkmgr'
 
 urlpatterns = [
     url(r'server_list/', ServerListView.as_view(),name='server_list'),
+    path('job_list/<int:pid>/<int:sid>/', JobListView.as_view(), name='job_list'),
+    path('project_list/<int:sid>/', ProjectListView.as_view(), name='project_list'),
 ]

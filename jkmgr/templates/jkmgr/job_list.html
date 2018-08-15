@@ -1,0 +1,269 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block custcss %}
+<link href="{% static 'css/plugins/iCheck/custom.css' %}" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>Job列表</h2>
+        <ol class="breadcrumb">
+            <li>
+                <a href="index.html">主页</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:server_list' %}">主机列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:project_list' sid %}">项目列表</a>
+            </li>
+            <li>
+                <strong>Job列表</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2">
+
+    </div>
+</div>
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>JOB列表</h5>
+            </div>
+            <div class="ibox-content">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="input-group" id="t1_search"><input id="t1_q" name='t1_q' type="text" class="input-sm form-control"> <span class="input-group-btn">
+                            <button type="button" class="btn btn-sm btn-primary"> 搜索</button> </span></div>
+                    </div>
+                </div>
+            </br>
+                <div class="table-responsive">
+                    <table id='t1' class="table table-striped">
+                        <thead>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                 <div id="t1_page_content" class="btn-group">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</div>
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>部署JOB列表</h5>
+            </div>
+            <div class="ibox-content">
+                <div class="row">
+                    <div class="col-sm-3">
+                        <div class="input-group" id="t2_search"><input id="t2_q" name="t2_q" type="text" class="input-sm form-control"> <span class="input-group-btn">
+                            <button type="button" class="btn btn-sm btn-primary"> 搜索</button> </span></div>
+                    </div>
+                </div>
+            <br>
+                <div class="table-responsive">
+                    <table id="t2" class="table table-striped">
+                        <thead>
+                        </thead>
+                        <tbody>
+
+                        </tbody>
+                    </table>
+                </div>
+                 <div id="t2_page_content" class="btn-group">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</div>
+{% endblock %}
+
+{% block custjs %}
+<script src="{% static 'js/plugins/metisMenu/jquery.metisMenu.js' %}"></script>
+<script src="{% static 'js/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+
+ <!-- iCheck -->
+<script src="{% static 'js/plugins/iCheck/icheck.min.js' %}"></script>
+
+  <!-- Custom and plugin javascript -->
+<script src="{% static 'js/inspinia.js' %}"></script>
+<script src="{% static 'js/plugins/pace/pace.min.js' %}"></script>
+
+<script>
+
+    function  getChoiceName(job_type_id,key) {
+        var ret = '';
+        $.each(GLOBAL_CHOICE,function (k,v) {
+            $.each(v[key],function (kk,vv) {
+                if (vv[0]==job_type_id) {
+                     ret = vv[1];
+                };
+            });
+
+        });
+        return ret;
+    };
+
+    function getConstant(k) {
+        return CONSTANT_DICT[k];
+    }
+
+    function initTableHead(table_name,ret) {
+       var tr = document.createComment('tr');
+
+        $.each(ret.table_config,function (k,v) {
+            if(v.display){
+                var th = document.createElement('th');
+                th.innerHTML = v.title;
+                $('#'+table_name+' thead').append(th);
+
+            }
+        });
+    };
+
+    function initTableBody(table_name,ret){
+        $.each(ret[table_name].data_list,function (k,row) {
+            var tr = document.createElement('tr');
+            $.each(ret.table_config,function (k,conf) {
+                if (conf.display) {
+                    var td = document.createElement('td');
+                    var content = '';
+                    var kwargs_dict = {};
+                    if (conf.text){
+                        $.each(conf.text.kwargs,function (kwargs_key,kwargs_value) {
+                             if(kwargs_value.substring(0,3) == "@@@") {
+                                 var key = kwargs_value.substring(3,kwargs_value.length);
+                                 kwargs_dict[kwargs_key] = getConstant(key);
+
+                             } else if(kwargs_value.substring(0,2) == "@@") {
+                                 var key = kwargs_value.substring(2,kwargs_value.length);
+
+                                 kwargs_dict[kwargs_key] = getChoiceName(row[conf.q],key);
+
+                             } else if(kwargs_value.substring(0,1) == "@") {
+                                  var key = kwargs_value.substring(1,kwargs_value.length);
+                                  kwargs_dict[kwargs_key] = row[key];
+                             };
+                        });
+
+                        content = conf.text.tpl.format(kwargs_dict);
+                    } else {
+                        content = row[conf.q];
+
+                    };
+                    $(td).html(content);
+                    $(tr).append(td);
+                };
+             });
+            $('#'+table_name+' tbody').append(tr);
+        });
+    };
+
+    function  initPage(table_name,ret) {
+        $('#'+table_name+'_page_content').html(ret.page_content);
+    };
+
+    function  getSearch(table_name) {
+        var result = {};
+        $('#'+table_name+'_search').find('input[type="text"],select').each(function(){
+            var name = $(this).attr('name');
+            var val = $(this).val();
+            result[name] = val
+        });
+        return result;
+    };
+
+    function emptyTable(table_name){
+        $('#'+table_name+' thead').empty();
+        $('#'+table_name+' tbody').empty();
+        $('#'+table_name+'_page_content').empty();
+
+    };
+
+    function bindSearch(table_name) {
+       $('#'+table_name+'_q').on('input propertychange', function() {
+            initTable(table_name,1);
+        });
+    };
+
+    function  bindPageElements() {
+        $("body").on("click", "[page]", function() {
+            var page = $(this).attr("page");
+            initTable(page);
+        });
+
+    };
+
+    function bindEvents() {
+        bindPageElements();
+    };
+
+    function initTable(table_name,page){
+       <!-- init table -->
+        $('#loading').removeClass('hide');
+        emptyTable(table_name);
+        var data = {}
+        var search_content = getSearch(table_name);
+        if (search_content){
+            data[table_name+'_search'] = JSON.stringify(search_content);
+        };
+
+        data['page'] = page;
+        $.ajax({
+            url:"{% url 'jkmgr:job_list' pid sid %}",
+            type: 'GET',
+            data: data,
+            dataType: 'JSON',
+            success:function (response) {
+
+                GLOBAL_CHOICE = response.global_choices_dict;
+
+                CONSTANT_DICT =  response.constant_dict;
+                /* 处理表头 */
+                initTableHead(table_name,response);
+                /* 处理表内容 */
+                initTableBody(table_name,response);
+
+                initPage(table_name,response);
+
+                $('#loading').addClass('hide');
+            },
+            error:function () {
+                $('#loading').addClass('hide');
+            }
+        });
+    };
+
+    String.prototype.format = function (args) {
+        return this.replace(/\{(\w+)\}/g, function (s, i) {
+            return args[i];
+        });
+    };
+
+    $(document).ready(function(){
+        SEARCH_BIND_TAG = true;
+        initTable('t1',1);
+        initTable('t2',1);
+        bindSearch('t1');
+        bindSearch('t2');
+    });
+</script>
+
+{% endblock %}
