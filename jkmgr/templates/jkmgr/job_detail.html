@@ -1,0 +1,270 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block custcss %}
+<link href="{% static 'css/plugins/iCheck/custom.css' %}" rel="stylesheet">
+<link href="{% static 'css/plugins/dualListbox/bootstrap-duallistbox.min.css' %}" rel="stylesheet">
+<link href="{% static 'css/plugins/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css' %}" rel="stylesheet">
+
+{% endblock %}
+{% block content %}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>Job详细</h2>
+        <ol class="breadcrumb">
+            <li>
+                <a href="index.html">主页</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:server_list' %}">主机列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:project_list' sid %}">项目列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:job_list' pid sid %}">Job列表</a>
+            </li>
+            <li>
+                <strong>Job详细</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2">
+
+    </div>
+</div>
+    <!--
+
+    -->
+
+
+    <div class="modal inmodal" id="myModal" tabindex="-1" role="dialog" aria-hidden="true" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-content animated bounceInRight">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">×</span><span class="sr-only">Close</span></button>
+                    <i class="fa fa-laptop modal-icon"></i>
+                    <h4 class="modal-title">更改邮件列表</h4>
+                </div>
+                <form id="eform"  class="wizard-big">
+                    <div class="modal-body">
+                        {{ j_form.emails }}
+                        {% csrf_token %}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" id="close" class="btn btn-white" data-dismiss="modal">关闭</button>
+                        <button type="button" id="save" class="btn btn-primary">保存更改</button>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+
+
+
+
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+                <div class="col-lg-12">
+                    <div class="ibox float-e-margins">
+                        <div class="ibox-title">
+                            <h5>{{ j_obj.job_name }}</h5>
+                            <div class="ibox-tools">
+                                <a class="collapse-link">
+                                    <i class="fa fa-chevron-up"></i>
+                                </a>
+                                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                                    <i class="fa fa-wrench"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-user">
+                                    <li><a href="#">选项 1</a>
+                                    </li>
+                                    <li><a href="#">选项 2</a>
+                                    </li>
+                                </ul>
+                                <a class="close-link">
+                                    <i class="fa fa-times"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="ibox-content form-horizontal">
+
+                                <div class="form-group"><label class="col-lg-2 control-label">{{ j_form.job_name.label }}</label>
+                                    <div class="col-lg-10"><input type="text" disabled="" value="{{ j_form.job_name.value }}" class="form-control"></div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+                                <div class="form-group"><label class="col-lg-2 control-label">{{ j_form.job_type.label }}</label>
+                                    <div class="col-lg-10"><input type="text" disabled="" value="{{ j_form.instance.get_job_type_display }}" class="form-control"></div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+                                <div class="form-group"><label class="col-lg-2 control-label">{{ j_form.project.label }}</label>
+                                    <div class="col-lg-10"><input type="text" disabled="" value="{{ j_form.instance.project }}" class="form-control"></div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+
+                                <div class="form-group"><label class="col-sm-2 control-label">{{ j_form.emails.label }}</label>
+                                    <div class="col-sm-10">
+                                        <div class="input-group m-b">
+                                            <input id="email" disabled="" type="text" class="form-control" value="{{ email_str }}">
+                                            <span class="input-group-btn">
+                                                <button type="button" data-toggle="modal" data-target="#myModal" class="btn btn-primary">更改</button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+                            {% if j_form.instance.job_type == 2 %}
+
+                                <div class="form-group"><label class="col-lg-2 control-label">{{ j_form.svn_url.label }}</label>
+                                    <div class="col-lg-10"><input type="text" disabled="" value="{{ j_form.svn_url.value }}" class="form-control"></div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+
+
+                            {% else %}
+
+
+                                <div class="form-group" style="border:1px solid red;"><label class="col-lg-2 control-label">模块列表</label>
+                                    <div class="col-lg-10">
+                                            <select id="group" name="group" class="form-control dual_select" multiple>
+                                                {% for i in her %}
+                                                <option value="{{ i.0 }}">{{ i.1 }}</option>
+                                                {% endfor %}
+                                            </select>
+                                    </div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+
+                                <div class="form-group"><label class="col-lg-2 control-label">操作列表</label>
+                                    <div class="col-lg-10">
+                                        {% for i in j_obj.action_list.all %}
+                                         <div class="i-checks">
+                                             <label>
+                                                 <input type="radio" value="{{ i.operation_value }}" name="operation">
+                                                 <i></i> {{ i.operation_name }}
+                                             </label>
+                                         </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+                                <div class="form-group"><label class="col-lg-2 control-label">环境列表</label>
+                                    <div class="col-lg-10">
+                                        {% for i in j_obj.environment_list.all %}
+                                        <div class="i-checks">
+                                            <input type="radio" id="environment" value="{{ i.id }}" name="environment"  aria-label="Single radio Two">
+                                            <label>{{ i.environment_name }}</label>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <div class="hr-line-dashed"></div>
+
+                                    <div class="form-group">
+                                        <div class="col-sm-4 col-sm-offset-2">
+                                            <button id="build" class="btn btn-primary" type="submit">BUILD</button>
+                                        </div>
+                                    </div>
+
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+</div>
+
+{% endblock %}
+
+{% block custjs %}
+<script src="{% static 'js/plugins/metisMenu/jquery.metisMenu.js' %}"></script>
+<script src="{% static 'js/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+
+ <!-- iCheck -->
+<script src="{% static 'js/plugins/iCheck/icheck.min.js' %}"></script>
+
+  <!-- Custom and plugin javascript -->
+<script src="{% static 'js/inspinia.js' %}"></script>
+<script src="{% static 'js/plugins/pace/pace.min.js' %}"></script>
+
+<!-- Dual Listbox -->
+<script src="{% static 'js/plugins/dualListbox/jquery.bootstrap-duallistbox.js' %}"></script>
+
+<script>
+    $(document).ready(function() {
+        toastr.options = {
+          "closeButton": true,
+          "debug": false,
+          "progressBar": true,
+          "preventDuplicates": false,
+          "positionClass": "toast-top-right",
+          "onclick": null,
+          "showDuration": "400",
+          "hideDuration": "1000",
+          "timeOut": "7000",
+          "extendedTimeOut": "1000",
+          "showEasing": "swing",
+          "hideEasing": "linear",
+          "showMethod": "fadeIn",
+          "hideMethod": "fadeOut"
+        };
+        $('.i-checks').iCheck({
+                    checkboxClass: 'icheckbox_square-green',
+                    radioClass: 'iradio_square-green',
+                });
+        $('.dual_select').bootstrapDualListbox({
+            selectorMinimalHeight: 160
+        });
+        $('#close').on('click',function () {
+            location.reload()
+        });
+        $('#save').on('click',function () {
+             $.ajax({
+                 type: "GET",//方法类型
+                 dataType: "json",//预期服务器返回的数据类型
+                 url: "{% url 'jkmgr:job_detail' pid sid id %}" ,//url
+                 traditional: true,
+                 data: $('#eform').serialize(),
+                 success: function (result) {
+                    location.reload()
+                },
+                error : function() {
+                    toastr.error("修改失败")
+                },
+            });
+        });
+
+        $('#build').on('click',function () {
+             var group_list = [];
+            $("select[name='group_helper2'] option").each(function () {
+                 group_list.push($(this).val());
+            });
+            if (group_list.length == 0) {
+                toastr.warning("需要选择模块");
+                return;
+            };
+
+            var operation = '';
+            $("input[name='operation']").each(function () {
+                if ($(this).parent().hasClass('checked')){
+                    operation = $(this).val();
+                };
+            });
+
+            if (operation.length == 0) {
+                toastr.warning("需要选择操作");
+                return;
+            };
+
+
+
+             var environment = $('#environment :checkbox').val();
+
+        });
+    });
+
+
+
+</script>
+{% endblock %}

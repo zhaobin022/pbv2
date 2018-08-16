@@ -470,7 +470,7 @@ class DbVariablesAdmin(admin.ModelAdmin):
     actions = (duplicate_db_var,)
 
 class EmailListAdmin(admin.ModelAdmin):
-    list_display = ("email",)
+    list_display = ("id","email",)
     search_fields = ("email",)
 
 

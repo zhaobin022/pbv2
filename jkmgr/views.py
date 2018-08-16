@@ -8,8 +8,9 @@ from copy import deepcopy
 
 
 from .models import JenkinsServer,JenkinsJob
-from dpinfo.models import Project,Version
+from dpinfo.models import Project,Version,HostEnvironmentRelation
 from pbv2.utils import CustomPaginator
+from .forms import BuildJenkinsJobForm
 
 # Create your views here.
 
@@ -119,8 +120,8 @@ class JobListView(View):
             "display": True,
             'title': '操作',
             'text': {
-                'tpl': '''<a class="btn btn-primary btn-sm" href="/jkmgr/job_detail/{id}/">详情</a>''',
-                'kwargs': {'id': '@id'}
+                'tpl': '''<a class="btn btn-primary btn-sm" href="/jkmgr/job_detail/{pid}/{sid}/{id}/">详情</a>''',
+                'kwargs': {'id': '@id','pid':'@@@pid','sid':'@@@sid'}
             },
         },
     ]
@@ -131,7 +132,6 @@ class JobListView(View):
         qs = self.model.objects.all()
 
         return qs
-
 
     def quseryset_filter(self,request,table_name):
         search = request.GET.get("{}_search".format(table_name), "")
@@ -160,8 +160,6 @@ class JobListView(View):
         else:
             data_list = list(qs.values(*values))
         return data_list
-
-
 
     def ajax(self, request):
         t1_data_list = self.quseryset_filter(request,'t1')
@@ -193,10 +191,53 @@ class JobListView(View):
         return ret
 
     def get(self,request,pid,sid):
+        self.constant_dict['pid'] = pid
+        self.constant_dict['sid'] = sid
 
         if request.is_ajax():
             return JsonResponse(self.ajax(request))
         return render(request,'jkmgr/job_list.html',{'pid':pid,'sid':sid})
+
+
+class JobDetailView(View):
+
+
+    def get(self,request,pid,sid,id):
+        if request.is_ajax():
+            ret = {
+                'status': False,
+                'msg': ''
+            }
+            try:
+                emails = request.GET.getlist('emails', '')
+                job_obj = JenkinsJob.objects.filter(id=id).first()
+                job_obj.emails.set(emails)
+                ret['status'] = True
+                ret['msg'] = '修改成功'
+            except Exception as e:
+                ret['msg'] = '修改失败'
+            return JsonResponse(ret)
+
+
+        j_obj = JenkinsJob.objects.filter(id=id).first()
+        email_list = j_obj.emails.all().values_list('email')
+        email_list = [ i[0] for i in email_list ]
+        email_str = ','.join(email_list)
+
+        her = HostEnvironmentRelation.objects.filter(environment__hostenvironmentrelation__project_id=pid).distinct().values_list('group__id','group__name')
+        a = j_obj.action_list.all()
+
+        if j_obj:
+            j_form = BuildJenkinsJobForm(instance=j_obj)
+
+
+
+        return render(request,'jkmgr/job_detail.html',locals())
+
+    def post(self,request,pid,sid,id):
+
+        if request.is_ajax():
+            pass
 
 
 class ServerListView(CustomView):

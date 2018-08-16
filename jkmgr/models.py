@@ -56,7 +56,8 @@ class JenkinsJob(models.Model):
     action_list=models.ManyToManyField(Operation,blank=True,related_name="jks_job")
 
     jenkins_server = models.ForeignKey(JenkinsServer,on_delete=models.CASCADE)
-    # environment = models.ForeignKey(dp_models.Environment,blank=True,null=True,on_delete=models.CASCADE)
+    default_environment = models.ForeignKey(dp_models.Environment,blank=True,null=True,on_delete=models.CASCADE)
+    environment_list = models.ManyToManyField(dp_models.Environment,blank=True,related_name='job_list')
 
     emails = models.ManyToManyField(dp_models.EmailList,blank=True)
     job_type_choice = (
