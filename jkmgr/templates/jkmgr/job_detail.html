@@ -4,7 +4,17 @@
 <link href="{% static 'css/plugins/iCheck/custom.css' %}" rel="stylesheet">
 <link href="{% static 'css/plugins/dualListbox/bootstrap-duallistbox.min.css' %}" rel="stylesheet">
 <link href="{% static 'css/plugins/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css' %}" rel="stylesheet">
+<style>
+    .form_border {
+        border:1px solid red;
+    }
 
+    pre{
+        height:400px;
+        overflow: auto;
+        overflow-x:hidden
+    }
+</style>
 {% endblock %}
 {% block content %}
 <div class="row wrapper border-bottom white-bg page-heading">
@@ -26,18 +36,18 @@
             <li>
                 <strong>Job详细</strong>
             </li>
+            <li>
+                <a href="{% url 'jkmgr:build_list' id %}">构建列表</a>
+            </li>
         </ol>
     </div>
     <div class="col-lg-2">
 
     </div>
 </div>
-    <!--
-
-    -->
 
 
-    <div class="modal inmodal" id="myModal" tabindex="-1" role="dialog" aria-hidden="true" style="display: none;">
+<div class="modal inmodal" id="myModal" tabindex="-1" role="dialog" aria-hidden="true" style="display: none;">
         <div class="modal-dialog">
             <div class="modal-content animated bounceInRight">
                 <div class="modal-header">
@@ -61,8 +71,27 @@
     </div>
 
 
+     <button id="ret_button" type="button" class="hidden" data-toggle="modal" data-target="#myModal5">
+                                    大模态
+                                </button>
 
 
+    <div class="modal inmodal fade" id="myModal5" tabindex="-1" role="dialog"  aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h4 id="chat-title" class="modal-title">RESULT</h4><div class="sk-rect4"></div>
+                </div>
+                <pre  id="chat" class="modal-body">
+                </pre>
+                <div class="sk-rect4"></div>
+                <div class="modal-footer">
+                    <button id="close" type="button" class="btn btn-white" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <div class="wrapper wrapper-content animated fadeInRight">
     <div class="row">
@@ -125,7 +154,7 @@
                             {% else %}
 
 
-                                <div class="form-group" style="border:1px solid red;"><label class="col-lg-2 control-label">模块列表</label>
+                                <div class="form-group" ><label class="col-lg-2 control-label">模块列表</label>
                                     <div class="col-lg-10">
                                             <select id="group" name="group" class="form-control dual_select" multiple>
                                                 {% for i in her %}
@@ -192,7 +221,88 @@
 <script src="{% static 'js/plugins/dualListbox/jquery.bootstrap-duallistbox.js' %}"></script>
 
 <script>
+    setFlag = true;
+
+    function display_out_put(bid,msg,display_wait_img) {
+        if (displayFlag) {
+             $('#ret_button').click();
+             $('#loading').addClass('hide');
+
+             displayFlag = false;
+        };
+        $('#chat-title').text("BUILD BUMBER "+bid);
+        $('#chat').html(msg);
+        if (display_wait_img) {
+            var waiting_img = document.createElement('img')
+            waiting_img.setAttribute('src',"{% static "img/spinner.gif" %}")
+            $('#chat').append(waiting_img);
+        };
+
+
+        $('#chat').scrollTop($('#chat').prop('scrollHeight'));
+    };
+
+    function get_and_display_jk_ret(bid){
+        $.ajax({
+            type: "GET",//方法类型
+            dataType: "json",//预期服务器返回的数据类型
+            url: "{% url 'jkmgr:jenkins_ret' id %}",
+            traditional: true,
+            data: {'bid': bid},
+            success: function (result) {
+                if (result.status) {
+                    if (result.building) {
+                        display_out_put(bid,result.msg,true);
+                    } else {
+                        clearInterval(OutputIntervalId);
+                        display_out_put(bid,result.msg,false);
+
+                      //  $('#close').click();
+                    };
+                } else {
+                    toastr.error("GET BUILD INFO FAILED");
+                    clearInterval(OutputIntervalId);
+                };
+            },
+            error: function () {
+                toastr.error("GET AJAX BUILD INFO FAILED");
+                clearInterval(OutputIntervalId);
+            },
+        });
+    };
+
+    function _get_and_display_jk_ret(bid) {
+
+        return function () {
+            get_and_display_jk_ret(bid);
+        };
+
+    };
+
     $(document).ready(function() {
+
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;//浏览器兼容
+        var config = { attributes: true, childList: true}//配置对象
+        $("#myModal5").each(function(){
+           var _this = $(this);
+           var observer = new MutationObserver(function(mutations) {//构造函数回调
+              mutations.forEach(function(record) {
+                 if(record.type == "attributes"){//监听属性
+
+        　　　　　　　　var c = $("#myModal5").attr('style');
+                     if (c == 'display: none;') {
+                         clearInterval(OutputIntervalId);
+                     };
+                 }
+              });
+           });
+           observer.observe(_this[0], config);
+        });
+
+        $.ajaxSetup({
+            data:{csrfmiddlewaretoken:'{{ csrf_token }}'},
+        });
+
         toastr.options = {
           "closeButton": true,
           "debug": false,
@@ -209,16 +319,20 @@
           "showMethod": "fadeIn",
           "hideMethod": "fadeOut"
         };
+
         $('.i-checks').iCheck({
                     checkboxClass: 'icheckbox_square-green',
                     radioClass: 'iradio_square-green',
                 });
+
         $('.dual_select').bootstrapDualListbox({
             selectorMinimalHeight: 160
         });
+
         $('#close').on('click',function () {
             location.reload()
         });
+
         $('#save').on('click',function () {
              $.ajax({
                  type: "GET",//方法类型
@@ -236,12 +350,18 @@
         });
 
         $('#build').on('click',function () {
+            $("select[name='group_helper2']").parents('.form-group').removeClass('form_border');
+            $("input[name='operation']").parents('.form-group').removeClass('form_border');
+            $("input[name='environment']").parents('.form-group').removeClass('form_border');
+
+
              var group_list = [];
             $("select[name='group_helper2'] option").each(function () {
                  group_list.push($(this).val());
             });
             if (group_list.length == 0) {
                 toastr.warning("需要选择模块");
+                $("select[name='group_helper2']").parents('.form-group').addClass('form_border');
                 return;
             };
 
@@ -254,15 +374,63 @@
 
             if (operation.length == 0) {
                 toastr.warning("需要选择操作");
+                $("input[name='operation']").parents('.form-group').addClass('form_border');
                 return;
             };
 
+            var environment = '';
+            $("input[name='environment']").each(function () {
+                if ($(this).parent().hasClass('checked')){
+                    environment = $(this).val();
+                };
+            });
+
+            if (environment.length == 0) {
+                toastr.warning("选择要执行的环境");
+                $("input[name='environment']").parents('.form-group').addClass('form_border');
+                return;
+            };
+
+             OutputIntervalId = '';
+             $('#loading').removeClass('hide');
+             $.ajax({
+                 type: "POST",
+                 dataType: "json",
+                 url: "{% url 'jkmgr:job_detail' pid sid id %}" ,
+                 traditional: true,
+                 data: {'group_list':group_list,'operation':operation,'environment':environment},
+                 success: function (result) {
+                     if (OutputIntervalId) {
+                         clearInterval(OutputIntervalId);
+                     };
+
+                    if (result.status) {
+                         displayFlag = true;
+                         if (result.building) {
+                               OutputIntervalId = setInterval(_get_and_display_jk_ret(result.build_number),2000);
+                         } else {
+                             $('#loading').addClass('hide');
+
+                             toastr.info('put current build number '+result.build_number+' in the queue !');
+                         };
+                    } else {
+                          $('#loading').addClass('hide');
+                        toastr.error(result.msg);
+                    };
+                },
+                error : function() {
+                   $('#loading').addClass('hide');
+                    toastr.error("连接服务器失败");
+                },
+             });
 
 
-             var environment = $('#environment :checkbox').val();
 
+
+          //  $('pre.modal-body').scrollTop($('pre.modal-body')[0].scrollHeight );
         });
     });
+
 
 
 

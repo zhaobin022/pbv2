@@ -1,0 +1,219 @@
+{% extends 'base/base.html' %}
+{% load static %}
+{% block custcss %}
+<link href="{% static 'css/plugins/iCheck/custom.css' %}" rel="stylesheet">
+<link href="{% static 'css/plugins/dualListbox/bootstrap-duallistbox.min.css' %}" rel="stylesheet">
+<link href="{% static 'css/plugins/awesome-bootstrap-checkbox/awesome-bootstrap-checkbox.css' %}" rel="stylesheet">
+<style>
+    .form_border {
+        border:1px solid red;
+    }
+
+    pre{
+        height:400px;
+        overflow: auto;
+        overflow-x:hidden
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="row wrapper border-bottom white-bg page-heading">
+    <div class="col-lg-10">
+        <h2>Job详细</h2>
+        <ol class="breadcrumb">
+            <li>
+                <a href="index.html">主页</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:server_list' %}">主机列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:project_list' sid %}">项目列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:job_list' pid sid %}">Job列表</a>
+            </li>
+            <li>
+                <a href="{% url 'jkmgr:job_detail' pid sid id %}">Job列表</a>
+            </li>
+            <li>
+                <strong>构建列表</strong>
+            </li>
+        </ol>
+    </div>
+    <div class="col-lg-2">
+
+    </div>
+</div>
+
+
+
+     <button id="ret_button" type="button" class="hidden" data-toggle="modal" data-target="#myModal5">
+                                    大模态
+                                </button>
+
+
+    <div class="modal inmodal fade" id="myModal5" tabindex="-1" role="dialog"  aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+                    <h4 id="chat-title" class="modal-title">RESULT</h4><div class="sk-rect4"></div>
+                </div>
+                <pre  id="chat" class="modal-body">
+                </pre>
+                <div class="sk-rect4"></div>
+                <div class="modal-footer">
+                    <button id="close" type="button" class="btn btn-white" data-dismiss="modal">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<div class="wrapper wrapper-content animated fadeInRight">
+    <div class="row">
+    <div class="col-lg-12">
+        <div class="ibox float-e-margins">
+            <div class="ibox-title">
+                <h5>{{ j_obj.job_name }} 构建列表</h5>
+            </div>
+            <div class="ibox-content" id="search">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                 <div id="page_content" class="btn-group">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</div>
+
+
+{% endblock %}
+
+{% block custjs %}
+<script src="{% static 'js/plugins/metisMenu/jquery.metisMenu.js' %}"></script>
+<script src="{% static 'js/plugins/slimscroll/jquery.slimscroll.min.js' %}"></script>
+
+ <!-- iCheck -->
+<script src="{% static 'js/plugins/iCheck/icheck.min.js' %}"></script>
+
+  <!-- Custom and plugin javascript -->
+<script src="{% static 'js/inspinia.js' %}"></script>
+<script src="{% static 'js/plugins/pace/pace.min.js' %}"></script>
+
+<!-- Dual Listbox -->
+<script src="{% static 'js/plugins/dualListbox/jquery.bootstrap-duallistbox.js' %}"></script>
+<script src="{% static 'js/ajax_table.js' %}"></script>
+
+
+<script>
+
+
+
+    displayFlag = true;
+    OutputIntervalId = '';
+    function _get_and_display_jk_ret(bid) {
+
+        return function () {
+            get_and_display_jk_ret(bid);
+        };
+
+    };
+
+    function get_and_display_jk_ret(bid){
+        $.ajax({
+            type: "GET",//方法类型
+            dataType: "json",//预期服务器返回的数据类型
+            url: "{% url 'jkmgr:jenkins_ret' id %}",
+            traditional: true,
+            data: {'bid': bid},
+            success: function (result) {
+                if (result.status) {
+                    if (result.building) {
+                        display_out_put(bid,result.msg,true);
+                    } else {
+                        clearInterval(OutputIntervalId);
+                        display_out_put(bid,result.msg,false);
+
+                    };
+
+                } else {
+                    toastr.error("GET BUILD INFO FAILED");
+                    clearInterval(OutputIntervalId);
+                };
+
+            },
+            error: function () {
+                toastr.error("GET AJAX BUILD INFO FAILED");
+                clearInterval(OutputIntervalId);
+            },
+        });
+    };
+
+    function display_out_put(bid,msg,display_wait_img) {
+         if (displayFlag) {
+             $('#ret_button').click();
+             $('#loading').addClass('hide');
+
+             displayFlag = false;
+        };
+
+        $('#chat-title').text("BUILD BUMBER "+bid);
+        $('#chat').html(msg);
+        if (display_wait_img) {
+            var waiting_img = document.createElement('img')
+            waiting_img.setAttribute('src',"{% static "img/spinner.gif" %}")
+            $('#chat').append(waiting_img);
+        };
+        $('#myModal5').prop('style','display: block;');
+        $('#chat').scrollTop($('#chat').prop('scrollHeight'));
+    };
+
+
+
+    $(function () {
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;//浏览器兼容
+        var config = { attributes: true, childList: true}//配置对象
+        $("#myModal5").each(function(){
+           var _this = $(this);
+           var observer = new MutationObserver(function(mutations) {//构造函数回调
+              mutations.forEach(function(record) {
+                 if(record.type == "attributes"){//监听属性
+
+        　　　　　　　　var c = $("#myModal5").attr('style');
+                     if (c == 'display: none;') {
+                         clearInterval(OutputIntervalId);
+                     } else  if (c == 'display: block;'){
+                         $('#chat').scrollTop($('#chat').prop('scrollHeight'));
+                     };
+                 }
+              });
+           });
+           observer.observe(_this[0], config);
+        });
+
+
+        $.ajaxList("{% url 'jkmgr:build_list' id %}");
+
+        $('body').on('click','a[number]',function () {
+             displayFlag = true;
+             var bid = $(this).attr('number')
+             $('#loading').removeClass('hide');
+             get_and_display_jk_ret(bid);
+             OutputIntervalId = setInterval(_get_and_display_jk_ret(bid),2000);
+        });
+
+    })
+
+
+
+</script>
+{% endblock %}

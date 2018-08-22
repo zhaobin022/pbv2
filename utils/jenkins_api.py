@@ -8,11 +8,29 @@ import xml.etree.ElementTree as ET
 
 
 class JenkinsApi(object):
+
+
     def __init__(self,jsever_obj):
 
         self.server = jenkins.Jenkins(jsever_obj.api_url, username=jsever_obj.username, password=jsever_obj.token)
         self.jsever_obj = jsever_obj
+    def get_build_console_output(self,job_name,bid):
+        ret = {
+            'status':False,
+            'msg':''
+        }
+        try:
+            ret['msg'] = self.server.get_build_console_output(job_name,int(bid))
+            building = self.server.get_build_info(job_name, int(bid))['building']
+            ret['status'] = True
+            ret['building'] = building
 
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            ret['msg'] = 'get job build output info failed'
+
+        return ret
 
     def jk_ping(self):
         try:
@@ -20,6 +38,20 @@ class JenkinsApi(object):
             return True
         except Exception as e:
             return False
+
+    def build_job(self,job_name,parameters):
+        next_build_number = self.server.get_job_info(job_name)['nextBuildNumber']
+        self.server.build_job(job_name,parameters=parameters)
+        try:
+            import time
+            time.sleep(1)
+            building = self.server.get_build_info(job_name, next_build_number)['building']
+        except Exception as e:
+            building = False
+
+
+        return next_build_number,building
+
     def check_connect(func):
 
         def wrapper(self,*args,**kwargs):
@@ -30,6 +62,8 @@ class JenkinsApi(object):
 
 
     def create_job(self,job_obj):
+
+
         if not self.server.job_exists(job_obj.job_name):
 
             if job_obj.job_type == 2:
@@ -62,6 +96,7 @@ class JenkinsApi(object):
             new_job_config_xml = ET.tostring(job_root, encoding='utf8')
             self.server.reconfig_job(job_obj.job_name, new_job_config_xml.decode('utf-8'))
 
+
     def get_job_svn_url(self,job_name):
 
         job_config_xml = self.server.get_job_config(job_name)
@@ -79,6 +114,7 @@ class JenkinsApi(object):
                     return ""
                 break
             break
+
 
     def set_svn_url(self,job_obj):
 
@@ -100,18 +136,21 @@ class JenkinsApi(object):
         self.server.reconfig_job(job_obj.job_name, new_xml.decode('utf-8'))
 
 
-
     def copy_job(self,old_name,new_name):
 
         self.server.copy_job(old_name, new_name)
+
 
     @check_connect
     def delete_job(self,job_name):
         if self.server.job_exists(job_name):
             self.server.delete_job(job_name)
 
+
     def rename_job(self,old_name,new_name):
         self.server.rename_job(old_name,new_name)
+
+
 if __name__ == '__main__':
     # jenkins_handler = JenkinsApi("http://10.12.208.89:8080", "admin", "e0f51bfdafb9bcccec1ab1e59aac0e41","a")
     # jenkins_handler.build_job({})
@@ -119,8 +158,12 @@ if __name__ == '__main__':
     # server = jenkins.Jenkins("http://10.12.208.89:8080", username="admin", password="6879e44b3dce17ae2df63d898a6ec318")
     # try:
     server = jenkins.Jenkins("http://10.12.12.157:8080", username="admin", password="fe8640ce0a98f56b75fb3e68ba08f536")
+    print(server.get_job_info('job4'))
     # print(server.get_version())
-    server.jobs_count()
+    # server.jobs_count()
+    # print(server.get_build_info('job4',12)['building'])
+    # print(server.get_build_console_output('job4',12))
+    # print(server.build_job('job4',parameters={'group_list':'','operation':'','environment':''}))
     # ret = server.get_job_config('job22')
     # with open('ret1.xml','w') as f:
     #     f.write(ret)

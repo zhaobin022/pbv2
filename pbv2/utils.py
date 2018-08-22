@@ -8,19 +8,21 @@ from django.core.paginator import Paginator
 
 
 class CustomPaginator(Paginator):
-    def __init__(self,qs,request,page_size=5,show_pager_count=4):
+    def __init__(self,qs,request,page_key='page',page_size=5,show_pager_count=4):
         super(CustomPaginator, self).__init__(qs,page_size)
         self.request = request
-        self.current_page_obj = self.get_current_page_obj()
+        self.page_key = page_key
         self.show_pager_count = show_pager_count
 
+        self.current_page_obj = self.get_current_page_obj()
+
     def get_current_page_obj(self):
-        current_page_num = self.request.GET.get('page',"")
+        current_page_num = self.request.GET.get(self.page_key,"")
         try:
             current_page_num = int(current_page_num)
         except Exception as e:
             current_page_num = 1
-
+        print(current_page_num)
         return  self.page(current_page_num)
 
     def get_current_page_object_list(self):

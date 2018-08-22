@@ -8,9 +8,11 @@ from copy import deepcopy
 
 
 from .models import JenkinsServer,JenkinsJob
-from dpinfo.models import Project,Version,HostEnvironmentRelation
+from dpinfo.models import Project,Group,HostEnvironmentRelation,Environment
 from pbv2.utils import CustomPaginator
 from .forms import BuildJenkinsJobForm
+from utils.jenkins_api import JenkinsApi
+
 
 # Create your views here.
 
@@ -164,13 +166,13 @@ class JobListView(View):
     def ajax(self, request):
         t1_data_list = self.quseryset_filter(request,'t1')
 
-        p1 = CustomPaginator(t1_data_list, request, page_size=2)
+        p1 = CustomPaginator(t1_data_list, request, page_key='t1_page',page_size=2)
         p1_page_content = p1.gen_page_html()
 
 
         t2_data_list = self.quseryset_filter(request,'t2')
 
-        p2 = CustomPaginator(t2_data_list, request, page_size=2)
+        p2 = CustomPaginator(t2_data_list,request,page_key='t2_page' , page_size=2)
         p2_page_content = p2.gen_page_html()
 
         ret = {
@@ -199,23 +201,46 @@ class JobListView(View):
         return render(request,'jkmgr/job_list.html',{'pid':pid,'sid':sid})
 
 
+class JenkinsResultView(View):
+
+
+    def get(self,request,jid):
+
+        if request.is_ajax():
+            ret = {
+                'status':False,
+                'msg':''
+            }
+            job_obj = JenkinsJob.objects.filter(id=jid).first()
+            bid = request.GET.get('bid','')
+            if job_obj and bid:
+                jk_handler = JenkinsApi(jsever_obj=job_obj.jenkins_server)
+                ret = jk_handler.get_build_console_output(job_obj.job_name,bid)
+            else:
+                ret['msg'] = 'get job failed !'
+            return JsonResponse(ret)
+
+
 class JobDetailView(View):
 
+    def change_email(self,request):
+        ret = {
+            'status': False,
+            'msg': ''
+        }
+        try:
+            emails = request.GET.getlist('emails', '')
+            job_obj = JenkinsJob.objects.filter(id=id).first()
+            job_obj.emails.set(emails)
+            ret['status'] = True
+            ret['msg'] = '修改成功'
+        except Exception as e:
+            ret['msg'] = '修改失败'
+        return ret
 
     def get(self,request,pid,sid,id):
         if request.is_ajax():
-            ret = {
-                'status': False,
-                'msg': ''
-            }
-            try:
-                emails = request.GET.getlist('emails', '')
-                job_obj = JenkinsJob.objects.filter(id=id).first()
-                job_obj.emails.set(emails)
-                ret['status'] = True
-                ret['msg'] = '修改成功'
-            except Exception as e:
-                ret['msg'] = '修改失败'
+            ret = self.change_email(request)
             return JsonResponse(ret)
 
 
@@ -234,10 +259,37 @@ class JobDetailView(View):
 
         return render(request,'jkmgr/job_detail.html',locals())
 
+
     def post(self,request,pid,sid,id):
 
         if request.is_ajax():
-            pass
+            group_list = request.POST.getlist('group_list','')
+            operation = request.POST.get('operation','')
+            environment = request.POST.get('environment','')
+            ret = {
+                'status':False,
+                'msg':''
+            }
+            group_list = [ i[0] for i in Group.objects.filter(id__in=group_list).values_list('name') ]
+            environment =  Environment.objects.filter(pk=environment).first().environment_name
+            if group_list and operation and environment:
+                j_obj = JenkinsJob.objects.filter(pk=id).first()
+                if j_obj:
+                    parameters = {'group_list':','.join(group_list),'operation':operation,'environment':environment}
+                    jkh = JenkinsApi(j_obj.jenkins_server)
+                    build_number,building = jkh.build_job(j_obj.job_name,parameters)
+                    ret['status'] = True
+                    ret['build_number'] = build_number
+                    ret['building'] = building
+                else:
+                    ret['msg'] = 'no job find'
+
+            else:
+                ret['msg'] = '参数不全'
+
+
+            return JsonResponse(ret)
+
 
 
 class ServerListView(CustomView):
@@ -362,3 +414,57 @@ class ProjectListView(CustomView):
         if request.is_ajax():
             return JsonResponse(self.ajax(request))
         return render(request,self.url,{'sid':sid})
+
+
+
+class BuildListView(View):
+
+    table_config = [
+        {
+            'q': 'number',
+            "display": True,
+            'title': 'BID',
+        },
+        {
+            'q': 'url',
+            "display": True,
+            'title': 'BUILD URL',
+        },
+        {
+            'q': None,
+            "display": True,
+            'title': '操作',
+            'text': {
+                'tpl': '''<a class="btn btn-primary btn-sm" number="{id}">详情</a>''',
+                'kwargs': {'id': '@number'}
+            },
+        }
+    ]
+
+    def get(self,request,id):
+
+        j_obj = JenkinsJob.objects.filter(pk=id).first()
+
+        id = j_obj.pk
+        pid = j_obj.project.pk
+        sid = j_obj.jenkins_server.pk
+        if request.is_ajax():
+
+
+            jk_handler = JenkinsApi(j_obj.jenkins_server)
+            job_info_dict = jk_handler.server.get_job_info(j_obj.job_name)
+            buid_info_list = job_info_dict['builds']
+
+
+            p = CustomPaginator(buid_info_list, request, page_size=4)
+            page_content = p.gen_page_html()
+
+            ret = {
+                'table_config': self.table_config,
+                'data_list': p.get_current_page_object_list(),
+                'page_content': page_content,
+            }
+
+            return JsonResponse(ret)
+
+        return render(request,'jkmgr/build_list.html',locals())

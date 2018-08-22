@@ -177,7 +177,7 @@
     };
 
     function  initPage(table_name,ret) {
-        $('#'+table_name+'_page_content').html(ret.page_content);
+        $('#'+table_name+'_page_content').html(ret[table_name].page_content);
     };
 
     function  getSearch(table_name) {
@@ -203,17 +203,14 @@
         });
     };
 
-    function  bindPageElements() {
-        $("body").on("click", "[page]", function() {
+    function  bindPageElements(table_name) {
+        $("body #"+table_name+"_page_content").on("click", "[page]", function() {
             var page = $(this).attr("page");
-            initTable(page);
+            initTable(table_name,page);
         });
 
     };
 
-    function bindEvents() {
-        bindPageElements();
-    };
 
     function initTable(table_name,page){
        <!-- init table -->
@@ -225,7 +222,7 @@
             data[table_name+'_search'] = JSON.stringify(search_content);
         };
 
-        data['page'] = page;
+        data[table_name+'_page'] = page;
         $.ajax({
             url:"{% url 'jkmgr:job_list' pid sid %}",
             type: 'GET',
@@ -263,6 +260,8 @@
         initTable('t2',1);
         bindSearch('t1');
         bindSearch('t2');
+        bindPageElements('t1');
+        bindPageElements('t2');
     });
 </script>
 
